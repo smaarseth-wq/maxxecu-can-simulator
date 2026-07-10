@@ -1,3 +1,9 @@
-bool can_init(const char *iface);
+can_init();
 
-void send_rpm(uint16_t rpm);
+↓
+
+send_rpm();
+
+↓
+
+can_close();
