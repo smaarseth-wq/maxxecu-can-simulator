@@ -1,17 +1,16 @@
 #include "canbus.h"
 
-#include <cstring>
 #include <iostream>
+#include <cstring>
 
 #include <unistd.h>
+#include <sys/socket.h>
 #include <sys/ioctl.h>
 
 #include <linux/can.h>
 #include <linux/can/raw.h>
 
 #include <net/if.h>
-
-#include <sys/socket.h>
 
 CanBus::CanBus()
 {
@@ -29,11 +28,11 @@ bool CanBus::open(const std::string& interface)
 
     if (socket_fd < 0)
     {
-        std::cout << "ERROR: Failed to create CAN socket" << std::endl;
+        perror("socket");
         return false;
     }
 
-    struct ifreq ifr;
+    struct ifreq ifr {};
 
     std::strncpy(ifr.ifr_name,
                  interface.c_str(),
@@ -41,8 +40,7 @@ bool CanBus::open(const std::string& interface)
 
     if (ioctl(socket_fd, SIOCGIFINDEX, &ifr) < 0)
     {
-        std::cout << "ERROR: Cannot find interface "
-                  << interface << std::endl;
+        perror("SIOCGIFINDEX");
 
         ::close(socket_fd);
         socket_fd = -1;
@@ -50,7 +48,7 @@ bool CanBus::open(const std::string& interface)
         return false;
     }
 
-    struct sockaddr_can addr;
+    sockaddr_can addr {};
 
     addr.can_family = AF_CAN;
     addr.can_ifindex = ifr.ifr_ifindex;
@@ -59,8 +57,7 @@ bool CanBus::open(const std::string& interface)
              reinterpret_cast<sockaddr*>(&addr),
              sizeof(addr)) < 0)
     {
-        std::cout << "ERROR: Failed to bind CAN socket"
-                  << std::endl;
+        perror("bind");
 
         ::close(socket_fd);
         socket_fd = -1;
@@ -68,10 +65,22 @@ bool CanBus::open(const std::string& interface)
         return false;
     }
 
-    std::cout << "CAN interface "
-              << interface
-              << " opened."
-              << std::endl;
+    std::cout
+        << "--------------------------------------"
+        << std::endl;
+
+    std::cout
+        << "CAN interface : "
+        << interface
+        << std::endl;
+
+    std::cout
+        << "Socket opened successfully."
+        << std::endl;
+
+    std::cout
+        << "--------------------------------------"
+        << std::endl;
 
     return true;
 }
@@ -97,39 +106,56 @@ bool CanBus::sendFrame(uint32_t id,
     if (!isOpen())
         return false;
 
-    struct can_frame frame;
+    can_frame frame {};
 
     frame.can_id = id;
-    frame.can_dlc = dlc;
-
-    std::memset(frame.data, 0, sizeof(frame.data));
+    frame.len = dlc;
 
     std::memcpy(frame.data,
                 data,
                 dlc);
 
-    int written = write(socket_fd,
-                        &frame,
-                        sizeof(frame));
+    ssize_t result =
+        send(socket_fd,
+             &frame,
+             sizeof(frame),
+             0);
 
-    return written == sizeof(frame);
+    if (result != sizeof(frame))
+    {
+        perror("send");
+        return false;
+    }
+
+    return true;
 }
 
 bool CanBus::sendRPM(uint16_t rpm)
 {
     uint8_t data[8] = {0};
 
+    /*
+        MaxxECU test frame
+
+        ID = 0x520
+
+        Byte0 = RPM low
+        Byte1 = RPM high
+    */
+
     data[0] = rpm & 0xFF;
     data[1] = (rpm >> 8) & 0xFF;
 
-    bool ok = sendFrame(0x520,
-                        data,
-                        8);
+    bool ok =
+        sendFrame(
+            0x520,
+            data,
+            8);
 
     if (ok)
     {
         std::cout
-            << "TX 0x520 RPM="
+            << "TX 0x520   RPM = "
             << rpm
             << std::endl;
     }
