@@ -1,4 +1,5 @@
 #include "simulator.h"
+#include <iostream>
 
 Simulator::Simulator()
 {
@@ -98,21 +99,26 @@ void Simulator::updateSensors()
 
 void Simulator::send(CanBus& can)
 {
-    can.send520(
+    bool ok520 = can.send520(
         rpm,
         throttle,
         map,
         lambda);
 
-    can.send521(
+    bool ok521 = can.send521(
         coolantTemp,
         airTemp,
         batteryVoltage,
         oilPressure);
 
-    can.send522(
+    bool ok522 = can.send522(
         vehicleSpeed,
         ignition,
         fuelDuty,
         ethanol);
+
+    if (!ok520 || !ok521 || !ok522)
+    {
+        std::cout << "CAN SEND FAILED" << std::endl;
+    }
 }
