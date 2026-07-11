@@ -1,4 +1,5 @@
 #include "canbus.h"
+#include "simulator.h"
 
 #include <chrono>
 #include <csignal>
@@ -17,9 +18,9 @@ int main()
     std::signal(SIGINT, signalHandler);
 
     std::cout << std::endl;
-    std::cout << "======================================" << std::endl;
-    std::cout << " MaxxECU CAN Simulator Release_001" << std::endl;
-    std::cout << "======================================" << std::endl;
+    std::cout << "==========================================" << std::endl;
+    std::cout << " MaxxECU CAN Simulator Release_002" << std::endl;
+    std::cout << "==========================================" << std::endl;
     std::cout << std::endl;
 
     CanBus can;
@@ -28,36 +29,46 @@ int main()
 
     if (!can.open("can0"))
     {
-        std::cout << std::endl;
-        std::cout << "ERROR: Failed to open can0" << std::endl;
+        std::cout << "ERROR: Failed to open CAN interface." << std::endl;
         return -1;
     }
 
-    std::cout << "CAN OK" << std::endl;
-    std::cout << std::endl;
+    std::cout << "CAN interface ready." << std::endl;
 
-    uint16_t rpm = 800;
-    int direction = 1;
+    Simulator simulator;
+
+    auto lastFast20 = std::chrono::steady_clock::now();
+    auto lastFast100 = std::chrono::steady_clock::now();
 
     while (running)
     {
-        can.sendRPM(rpm);
+        auto now = std::chrono::steady_clock::now();
 
-        rpm += (direction * 100);
-
-        if (rpm >= 8000)
+        //
+        // 20 ms task
+        //
+        if (now - lastFast20 >= std::chrono::milliseconds(20))
         {
-            rpm = 8000;
-            direction = -1;
+            simulator.update();
+            simulator.send(can);
+
+            lastFast20 = now;
         }
 
-        if (rpm <= 800)
+        //
+        // Future 100 ms messages
+        //
+        if (now - lastFast100 >= std::chrono::milliseconds(100))
         {
-            rpm = 800;
-            direction = 1;
+            // send 0x523
+            // send 0x524
+            // send 0x525
+
+            lastFast100 = now;
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(1));
     }
 
     std::cout << std::endl;
