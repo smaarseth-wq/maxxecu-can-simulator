@@ -42,6 +42,7 @@ int main()
 
     while (running)
     {
+        std::cout << "." << std::flush;
         auto now = std::chrono::steady_clock::now();
 
         //
