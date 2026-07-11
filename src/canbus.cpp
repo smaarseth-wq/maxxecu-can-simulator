@@ -95,26 +95,27 @@ bool CanBus::sendFrame(
     if (!isOpen())
         return false;
 
-    struct can_frame frame {};
+    struct can_frame frame{};
 
     frame.can_id = id;
-    frame.len = dlc;
+    frame.can_dlc = dlc;
 
-    std::memcpy(
-        frame.data,
-        data,
-        dlc);
+    memcpy(frame.data, data, dlc);
 
-    int ret = write(
-        socket_fd,
-        &frame,
-        sizeof(frame));
+    int ret = write(socket_fd, &frame, sizeof(frame));
 
-    if (ret != sizeof(frame))
+    if (ret < 0)
     {
         perror("write");
         return false;
     }
+
+    std::cout
+        << "ID:0x"
+        << std::hex << id
+        << "  bytes:"
+        << std::dec << ret
+        << std::endl;
 
     return true;
 }
