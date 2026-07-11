@@ -1,20 +1,28 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(maxxecu_can_simulator)
+project(MaxxECU_CAN_Simulator)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_compile_options(
-    -Wall
-    -Wextra
-)
+add_executable(
+    maxxecu_can_simulator
 
-add_executable(maxxecu_can_simulator
     src/main.cpp
     src/canbus.cpp
+    src/simulator.cpp
 )
 
-target_include_directories(maxxecu_can_simulator PRIVATE
-    src
+target_compile_options(
+    maxxecu_can_simulator
+    PRIVATE
+        -Wall
+        -Wextra
+        -O2
+        -pthread
+)
+
+target_link_libraries(
+    maxxecu_can_simulator
+    pthread
 )
