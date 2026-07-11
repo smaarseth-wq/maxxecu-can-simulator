@@ -99,6 +99,7 @@ void Simulator::updateSensors()
 
 void Simulator::send(CanBus& can)
 {
+   std::cout << "TX" << std::endl;
     bool ok520 = can.send520(
         rpm,
         throttle,
